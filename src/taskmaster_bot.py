@@ -1,13 +1,12 @@
+import enum
 import os
-from typing import Literal
-
 import pygsheets
 import dice
 from datetime import datetime
-import user_enum
 import discord_token
 import discord
 from discord import app_commands
+from aenum import extend_enum
 
 """
 ########################################################################################################################
@@ -15,9 +14,10 @@ Internal Bot Stuff and GSheet Interactions
 ########################################################################################################################
 """
 
+# Your keyfile should be a JSON generated on the Google Developer Console, located in the same folder as this script.
 keyfile_path = f"{os.getcwd()}\\keyfile.json"
 gc = pygsheets.authorize(service_file=keyfile_path)
-sh = gc.open('Recreational Funds')
+sh = gc.open(discord_token.MY_WORKSHEET)
 transactions = sh.worksheet_by_title('Transactions')
 tasks = sh.worksheet_by_title('Task List')
 totals = sh.worksheet_by_title('Totals')
@@ -30,6 +30,10 @@ debug_enabled = False
 def debug(message: str):
     if debug_enabled:
         print(message)
+
+
+UserEnum = enum.Enum('UserEnum', {'Everyone': 'Everyone'})
+TaskEnum = enum.Enum('TaskEnum', {})
 
 
 def register_tasks():
@@ -48,6 +52,11 @@ def register_tasks():
             "Notes": task_notes
         }
     del task_list["Task"]
+    for task in task_list:
+        try:
+            extend_enum(TaskEnum, task, task)
+        except Exception as e:
+            debug(f"Got exception when assigning task to TaskEnum: {e}")
 
 
 def register_users():
@@ -55,6 +64,13 @@ def register_users():
     try:
         user_list = totals.get_values(include_tailing_empty=False, include_tailing_empty_rows=False, start="1:1",
                                       end="1:1")[0]
+        for user in user_list:
+            try:
+                extend_enum(UserEnum, user, user)
+            except Exception as e:
+                debug(f"Got exception when adding user to UserEnum: {e}")
+
+        user_list.append("Everyone")
         return user_list
     except Exception as e:
         debug(f"Got exception in registering users: {e}")
@@ -67,6 +83,7 @@ def get_task(task: str):
     """
 
     try:
+        debug(f"task is: {task}")
         return task_list[task]
     except Exception as e:
         debug(f"Got exception in getting task: {e}")
@@ -77,6 +94,7 @@ def get_task_name(task: str):
 
 
 def get_reward(task: str):
+    debug(f"task={task}")
     return get_task(task)["Reward"]
 
 
@@ -106,34 +124,39 @@ def record_task(task: str, recorder: str, notes: str = ""):
     Takes the name of a task you've completed as well as an optional notes.
     Then, calculates your reward, reports it, and adds an entry to the table.
     """
+    debug(f"task={task}, \nrecorder={recorder},\nnotes={notes}")
     reward = get_reward(task)
-    recorder = recorder
     amount = calculate_reward(reward)
     notes = f"{notes} - Added by Bot"
     date = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     transactions.append_table(values=[date, recorder, task, amount, notes], start='A:A', end='E:E')
+    debug(f"reward={reward}\n recorder={recorder}\n amount={amount} \n notes={notes} \n date={date}")
     return f"Task completion recorded for {recorder}! You earned ${amount}! Current balance: {check_balance(recorder)}."
 
 
-def spend(amount=0, reason: str = "", spender: str = "", notes: str = ""):
+def spend(amount: float = 0.0, reason: str = "", spender: str = "", notes: str = ""):
     try:
+        notes = f"{notes} - Added by Bot"
         date = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-        transactions.append_table(values=[date, spender, reason, -abs(amount), notes])
+        transactions.append_table(values=[date, spender, reason, -abs(amount), notes], start="A:A", end="E:E")
         return f"Transaction recorded for {spender} at {date} for {reason}: ${amount}. Notes: {notes}"
     except Exception as e:
         debug(f"Got exception when attempting to add a spend transaction: {e}")
 
 
-def earn(amount=0, reason: str = "", earner: str = "", notes: str = ""):
+def earn(amount: float = 0.0, reason: str = "", earner: str = "", notes: str = ""):
     try:
+        notes = f"{notes} - Added by Bot"
         date = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-        transactions.append_table(values=[date, earner, reason, abs(amount), notes])
+        transactions.append_table(values=[date, earner, reason, abs(amount), notes], start="A:A", end="E:E")
         return f"Transaction recorded for {earner} at {date} for {reason}: ${amount}. Notes: {notes}"
     except Exception as e:
         debug(f"Got exception when attempting to add an earn transaction: {e}")
 
 
 def check_balance(name: str = ""):
+    if name == "Everyone":
+        return "N/A"
     try:
         address: tuple = totals.find(forceFetch=True, matchEntireCell=True, pattern=name)[0].address.index
         cell: tuple = tuple([int(address[0] + 1), int(address[1])])
@@ -145,11 +168,16 @@ def check_balance(name: str = ""):
 def reset_bot():
     global task_list
     global user_list
-    register_tasks()
-    register_users()
     task_list = {}
     user_list = []
+    register_tasks()
+    register_users()
 
+
+# Tasks and Users must be registered now, otherwise when the bot tries to register its commands, it will fail
+# because it won't have the proper values for its Enums.
+register_tasks()
+register_users()
 
 """
 ########################################################################################################################
@@ -207,10 +235,45 @@ async def reset(interaction: discord.Interaction):
                        notes="Any notes you might want to add."
                        )
 async def record(interaction: discord.Interaction,
-                 name: user_list,
-                 task: task_list,
-                 notes=""):
-    await interaction.response.send_message(record_task(recorder=name, task=task, notes=notes))
+                 name: UserEnum,
+                 task: TaskEnum,
+                 notes: str = ""):
+    await interaction.response.send_message(record_task(
+        recorder=name.value,
+        task=task.value,
+        notes=notes))
+
+
+@client.tree.command(name="earn")
+@app_commands.describe(name="The name of the person who earned the money.",
+                       reason="What you did to earn the money.",
+                       amount="The amount of money earned  (enter a decimal with no $, eg. '4.20')")
+async def earn_money(interaction: discord.Interaction,
+                     name: UserEnum,
+                     reason: str = "",
+                     amount: float = 0.0,
+                     notes: str = ""):
+    await interaction.response.send_message(earn(
+        earner=name.value,
+        reason=reason,
+        amount=amount,
+        notes=notes))
+
+
+@client.tree.command(name="spend")
+@app_commands.describe(name="The name of the person who spent the money.",
+                       reason="What did you spend the money on?",
+                       amount="The amount of money spent (enter a decimal with no $, eg. '4.20').")
+async def spend_money(interaction: discord.Interaction,
+                      name: UserEnum,
+                      reason: str = "",
+                      amount: float = 0.0,
+                      notes: str = ""):
+    await interaction.response.send_message(spend(
+        spender=name.value,
+        reason=reason,
+        amount=amount,
+        notes=notes))
 
 
 """
@@ -219,9 +282,5 @@ Definitions are done, below here we're DOING THINGS!
 ########################################################################################################################
 """
 
-# Initialize the bot's internal variables using info found in the sheet. Without this line, it won't work.
-reset_bot()
 # Turn on the bot and log it into Discord.
 client.run(TOKEN)
-
-# print(record_task(task="Writing", recorder="Nathan", notes="Testing!"))
