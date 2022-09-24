@@ -15,7 +15,10 @@ Internal Bot Stuff and GSheet Interactions
 """
 
 # Your keyfile should be a JSON generated on the Google Developer Console, located in the same folder as this script.
-keyfile_path = f"{os.getcwd()}\\keyfile.json"
+try:
+    keyfile_path = f"{os.getcwd()}\\keyfile.json"
+except FileNotFoundError:
+    keyfile_path = f"{os.getcwd()}/keyfile.json"
 gc = pygsheets.authorize(service_file=keyfile_path)
 sh = gc.open(discord_token.MY_WORKSHEET)
 transactions = sh.worksheet_by_title('Transactions')
