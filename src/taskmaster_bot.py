@@ -222,6 +222,7 @@ async def send_slow_message(interaction: discord.Interaction, message: str):
         try:
             await asyncio.sleep(3)
             await interaction.channel.send(message)
+            debug(f"No error in sending the followup message.")
         except Exception as e:
             debug(f"Still couldn't send the slow message: {e}")
 
@@ -266,7 +267,7 @@ async def record(interaction: discord.Interaction,
         recorder=name.value,
         task=task.value,
         notes=notes)
-    await interaction.response.send_message(reply)
+    await send_slow_message(interaction=interaction, message=reply)
 
 
 @client.tree.command(name="earn")
@@ -278,7 +279,7 @@ async def earn_money(interaction: discord.Interaction,
                      reason: str = "",
                      amount: float = 0.0,
                      notes: str = ""):
-    await interaction.response.send_message(earn(
+    await send_slow_message(interaction=interaction, message=earn(
         earner=name.value,
         reason=reason,
         amount=amount,
@@ -294,7 +295,7 @@ async def spend_money(interaction: discord.Interaction,
                       reason: str = "",
                       amount: float = 0.0,
                       notes: str = ""):
-    await interaction.response.send_message(spend(
+    await send_slow_message(interaction=interaction, message=spend(
         spender=name.value,
         reason=reason,
         amount=amount,
