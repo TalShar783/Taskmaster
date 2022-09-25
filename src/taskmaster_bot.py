@@ -15,6 +15,7 @@ Internal Bot Stuff and GSheet Interactions
 """
 
 # Your keyfile should be a JSON generated on the Google Developer Console, located in the same folder as this script.
+# Currently it's set to expect Linux nomenclature and attempt Windows if that fails, but I can't make any promises.
 try:
     keyfile_path = f"{os.getcwd()}/keyfile.json"
 except FileNotFoundError:
@@ -161,8 +162,11 @@ def check_balance(name: str = ""):
     if name == "Everyone":
         return "N/A"
     try:
+        debug(f"name = {name}")
         address: tuple = totals.find(forceFetch=True, matchEntireCell=True, pattern=name)[0].address.index
         cell: tuple = tuple([int(address[0] + 1), int(address[1])])
+        debug(f"name address: {address} \nvalue address: {cell}")
+        debug(f"value of value address: {totals.get_value(addr=cell)}")
         return totals.get_value(addr=cell)
     except Exception as e:
         debug(f"Got exception when attempting to check balance: {e}")
@@ -277,6 +281,14 @@ async def spend_money(interaction: discord.Interaction,
         reason=reason,
         amount=amount,
         notes=notes))
+
+
+@client.tree.command(name="check_balance")
+@app_commands.describe(name="The name of the person whose balance you want to check.")
+async def d_check_balance(interaction: discord.Interaction,
+                          name: UserEnum
+                          ):
+    await interaction.response.send_message(f"Balance for {name.value}: {check_balance(name.value)}")
 
 
 """
