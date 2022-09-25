@@ -214,6 +214,18 @@ class MyClient(discord.Client):
 client = MyClient()
 
 
+async def send_slow_message(interaction: discord.Interaction, message: str):
+    try:
+        await interaction.response.send_message(message)
+    except discord.errors.NotFound as e:
+        debug(f"Got a NotFound error when attempting to send slow message: {e}")
+        try:
+            await asyncio.sleep(3)
+            await interaction.channel.send(message)
+        except Exception as e:
+            debug(f"Still couldn't send the slow message: {e}")
+
+
 @client.event
 async def on_ready():
     print('Logged in as')
@@ -293,20 +305,12 @@ async def spend_money(interaction: discord.Interaction,
 @app_commands.describe(name="The name of the person whose balance you want to check.")
 async def d_check_balance(interaction: discord.Interaction,
                           name: UserEnum):
-    first_interaction = interaction
     try:
         balance = f"Balance for {name.value}: {check_balance(name.value)}."
     except Exception as e:
         debug(f"Error in accessing sheet to get balance: {e}")
         balance = "Error"
-    try:
-        debug(balance)
-        await first_interaction.response.defer()
-        await asyncio.sleep(5)
-        first_interaction.channel.send(balance)
-    except Exception as e:
-        debug(f"Got exception when attempting to send response for check_balance: {e}")
-        await first_interaction.channel.send(balance)
+    await send_slow_message(interaction=interaction, message=balance)
 
 
 """
