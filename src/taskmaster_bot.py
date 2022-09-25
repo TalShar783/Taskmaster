@@ -29,7 +29,7 @@ totals = sh.worksheet_by_title('Totals')
 
 task_list: dict = {}
 user_list: list = []
-debug_enabled = True
+debug_enabled = False
 
 
 def debug(message: str):
