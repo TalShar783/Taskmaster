@@ -292,10 +292,11 @@ async def spend_money(interaction: discord.Interaction,
 async def d_check_balance(interaction: discord.Interaction,
                           name: UserEnum):
     first_message = interaction
+    interaction.response.defer()
     try:
         balance = f"Balance for {name.value}: {check_balance(name.value)}."
         debug(balance)
-        await interaction.response.send_message(balance)
+        await first_message.channel.send(balance)
     except Exception as e:
         await first_message.channel.send(f"Got exception when attempting to send check_balance message: {e}")
 
