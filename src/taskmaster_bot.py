@@ -149,8 +149,9 @@ def spend(amount: float = 0.0, reason: str = "", spender: str = "", notes: str =
         debug(f"Got exception when attempting to add a spend transaction: {e}")
 
 
-def earn(amount: float = 0.0, reason: str = "", earner: str = "", notes: str = ""):
+def earn(amount: str = "", reason: str = "", earner: str = "", notes: str = ""):
     try:
+        amount = calculate_reward(amount)
         notes = f"{notes} - Added by Bot"
         date = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         transactions.append_table(values=[date, earner, reason, abs(amount), notes], start="A:A", end="E:E")
@@ -277,7 +278,7 @@ async def record(interaction: discord.Interaction,
 async def earn_money(interaction: discord.Interaction,
                      name: UserEnum,
                      reason: str = "",
-                     amount: float = 0.0,
+                     amount: str = "",
                      notes: str = ""):
     await send_slow_message(interaction=interaction, message=earn(
         earner=name.value,
