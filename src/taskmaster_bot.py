@@ -26,9 +26,11 @@ sh = gc.open(discord_token.MY_WORKSHEET)
 transactions = sh.worksheet_by_title('Transactions')
 tasks = sh.worksheet_by_title('Task List')
 totals = sh.worksheet_by_title('Totals')
+bounties = sh.worksheet_by_title('Bounty Board')
 
 task_list: dict = {}
 user_list: list = []
+bounty_list: dict = {}
 debug_enabled = False
 
 
@@ -39,6 +41,7 @@ def debug(message: str):
 
 UserEnum = enum.Enum('UserEnum', {'Everyone': 'Everyone'})
 TaskEnum = enum.Enum('TaskEnum', {})
+BountyEnum = enum.Enum('BountyEnum', {})
 
 
 def register_tasks():
@@ -81,6 +84,21 @@ def register_users():
         debug(f"Got exception in registering users: {e}")
 
 
+def register_bounties():
+    global bounty_list
+    try:
+        bounty_list = bounties.get_values(include_tailing_empty=False, include_tailing_empty_rows=False, start="1:1",
+                                          end="1:1")[0]
+        for bounty in bounty_list:
+            try:
+                extend_enum(BountyEnum, bounty, bounty)
+            except Exception as e:
+                debug(f"Got exception when adding bounty to BountyEnum: {e}")
+        return bounty_list
+    except Exception as e:
+        debug(f"Got exception in registering bounties: {e}")
+
+
 def get_task(task: str):
     """
     :param task: = A string exactly matching the name of the task in the spreadsheet
@@ -92,6 +110,23 @@ def get_task(task: str):
         return task_list[task]
     except Exception as e:
         debug(f"Got exception in getting task: {e}")
+
+
+def get_bounty(bounty: str):
+    try:
+        debug(f"bounty is: {bounty}")
+        return bounty_list[bounty]
+    except Exception as e:
+        debug(f"Got exception in gettinb bounty: {e}")
+
+
+def get_bounty_name(bounty: str):
+    return get_bounty(bounty)["Bounty"]
+
+
+def get_bounty_reward(bounty: str):
+    debug(f"bounty={bounty}")
+    return get_bounty(bounty)["Reward"]
 
 
 def get_task_name(task: str):
@@ -139,6 +174,24 @@ def record_task(task: str, recorder: str, notes: str = ""):
     return f"Task completion recorded for {recorder}! You earned ${amount}! Current balance: {check_balance(recorder)}."
 
 
+def complete_bounty(bounty: str, recorder: str, notes: str = ""):
+    """
+    :param bounty: String matching the "Bounty" column
+    :param recorder: Name of the person who completed it
+    :param notes: Any notes you might have
+    :return: Returns a success message
+    """
+    debug(f"bounty={bounty}, \nrecorder={recorder}, \nnotes={notes}")
+    reward = get_bounty_reward(bounty)
+    amount = calculate_reward(reward)
+    notes = f"{notes} - Added by Bot"
+    date = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    bounties.append_table(values=[date, recorder, bounty, amount, notes], start='A:A', end='B:B')
+    debug(f"reward={reward}\n recorder={recorder}\n amount={amount} \n notes={notes} \n date={date}")
+    return f"Bounty completion rewarded for {recorder}! You earned ${amount}! Current balance: {check_balance(recorder)}."
+
+
+
 def spend(amount: float = 0.0, reason: str = "", spender: str = "", notes: str = ""):
     try:
         notes = f"{notes} - Added by Bot"
@@ -182,12 +235,14 @@ def reset_bot():
     user_list = []
     register_tasks()
     register_users()
+    register_bounties()
 
 
 # Tasks and Users must be registered now, otherwise when the bot tries to register its commands, it will fail
 # because it won't have the proper values for its Enums.
 register_tasks()
 register_users()
+register_bounties()
 
 """
 ########################################################################################################################
@@ -267,6 +322,17 @@ async def record(interaction: discord.Interaction,
     reply = record_task(
         recorder=name.value,
         task=task.value,
+        notes=notes)
+    await send_slow_message(interaction=interaction, message=reply)
+
+
+async def bounty(interaction: discord.Interaction,
+                 name: UserEnum,
+                 bounty: BountyEnum,
+                 notes: str = ""):
+    reply = record_task(
+        recorder=name.value,
+        task=bounty.value,
         notes=notes)
     await send_slow_message(interaction=interaction, message=reply)
 
