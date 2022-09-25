@@ -1,3 +1,4 @@
+import asyncio
 import enum
 import os
 import pygsheets
@@ -299,7 +300,9 @@ async def d_check_balance(interaction: discord.Interaction,
         balance = "Error"
     try:
         debug(balance)
-        await first_interaction.response.send_message(balance)
+        await first_interaction.response.defer()
+        await asyncio.sleep(5)
+        first_interaction.followup.send(balance)
     except Exception as e:
         debug(f"Got exception when attempting to send response for check_balance: {e}")
         await first_interaction.followup.send(balance)
