@@ -166,9 +166,10 @@ def check_balance(name: str = ""):
         debug(f"name = {name}")
         address: tuple = totals.find(forceFetch=True, matchEntireCell=True, pattern=name)[0].address.index
         cell: tuple = tuple([int(address[0] + 1), int(address[1])])
+        value = totals.get_value(addr=cell)
         debug(f"name address: {address} \nvalue address: {cell}")
-        debug(f"value of value address: {totals.get_value(addr=cell)}")
-        return totals.get_value(addr=cell)
+        debug(f"value of value address: {value}")
+        return value
     except Exception as e:
         debug(f"Got exception when attempting to check balance: {e}")
 
