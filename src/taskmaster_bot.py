@@ -299,11 +299,11 @@ async def d_check_balance(interaction: discord.Interaction,
         balance = "Error"
     try:
         debug(balance)
-        await interaction.response.send_message(balance)
+        await first_interaction.response.send_message(balance)
     except Exception as e:
         debug(f"Got exception when attempting to send response for check_balance: {e}")
-        await interaction.response.send_message("Accessing sheet...")
-        await interaction.followup.send(balance)
+        await first_interaction.response.send_message("Accessing sheet...")
+        await first_interaction.followup.send(balance)
 
 
 """
