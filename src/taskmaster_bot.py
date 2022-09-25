@@ -28,7 +28,7 @@ totals = sh.worksheet_by_title('Totals')
 
 task_list: dict = {}
 user_list: list = []
-debug_enabled = False
+debug_enabled = True
 
 
 def debug(message: str):
@@ -226,14 +226,17 @@ async def debug_switch(interaction: discord.Interaction):
     if debug_enabled:
         debug_enabled = False
         print("Debug disabled.")
+        await interaction.response.send_message("Debug disabled.")
     else:
         debug_enabled = True
         print("Debug enabled.")
+        await interaction.response.send_message("Debug disabled.")
 
 
 @client.tree.command()
 async def reset(interaction: discord.Interaction):
     reset_bot()
+    await interaction.response.send("Bot reset.")
 
 
 @client.tree.command()
@@ -245,10 +248,11 @@ async def record(interaction: discord.Interaction,
                  name: UserEnum,
                  task: TaskEnum,
                  notes: str = ""):
-    await interaction.response.send_message(record_task(
+    reply = record_task(
         recorder=name.value,
         task=task.value,
-        notes=notes))
+        notes=notes)
+    await interaction.response.send_message(reply)
 
 
 @client.tree.command(name="earn")
@@ -288,7 +292,12 @@ async def spend_money(interaction: discord.Interaction,
 async def d_check_balance(interaction: discord.Interaction,
                           name: UserEnum
                           ):
-    await interaction.response.send_message(f"Balance for {name.value}: {check_balance(name.value)}")
+    try:
+        balance = f"Balance for {name.value}: {check_balance(name.value)}."
+        debug(f"Balance for {name.value} = {balance}.")
+        await interaction.response.send_message(f"{balance}")
+    except Exception as e:
+        await interaction.response.send_message(f"Got exception when attempting to send check_balance message: {e}")
 
 
 """
