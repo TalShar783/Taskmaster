@@ -302,10 +302,10 @@ async def d_check_balance(interaction: discord.Interaction,
         debug(balance)
         await first_interaction.response.defer()
         await asyncio.sleep(5)
-        first_interaction.followup.send(balance)
+        first_interaction.channel.send(balance)
     except Exception as e:
         debug(f"Got exception when attempting to send response for check_balance: {e}")
-        await first_interaction.followup.send(balance)
+        await first_interaction.channel.send(balance)
 
 
 """
