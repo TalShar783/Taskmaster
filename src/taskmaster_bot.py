@@ -297,7 +297,7 @@ async def d_check_balance(interaction: discord.Interaction,
         debug(balance)
         await interaction.response.send_message(balance)
     except Exception as e:
-        await first_message.channel.send_message(f"Got exception when attempting to send check_balance message: {e}")
+        await first_message.channel.send(f"Got exception when attempting to send check_balance message: {e}")
 
 
 """
