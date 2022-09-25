@@ -291,14 +291,19 @@ async def spend_money(interaction: discord.Interaction,
 @app_commands.describe(name="The name of the person whose balance you want to check.")
 async def d_check_balance(interaction: discord.Interaction,
                           name: UserEnum):
-    first_message = interaction
-    interaction.response.defer()
+    try:
+        balance = f"Balance for {name.value}: {check_balance(name.value)}."
+    except Exception as e:
+        debug(f"Error in accessing sheet to get balance: {e}")
+        balance = "Error"
     try:
         balance = f"Balance for {name.value}: {check_balance(name.value)}."
         debug(balance)
-        await first_message.channel.send(balance)
+        await interaction.response.send_message(balance)
     except Exception as e:
-        await first_message.channel.send(f"Got exception when attempting to send check_balance message: {e}")
+        debug(f"Got exception when attempting to send response for check_balance: {e}")
+        await interaction.response.send_message("Accessing sheet...")
+        await interaction.followup.send(balance)
 
 
 """
