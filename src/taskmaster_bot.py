@@ -171,7 +171,7 @@ def record_task(task: str, recorder: str, notes: str = ""):
     date = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     transactions.append_table(values=[date, recorder, task, amount, notes], start='A:A', end='E:E')
     debug(f"reward={reward}\n recorder={recorder}\n amount={amount} \n notes={notes} \n date={date}")
-    return f"Task completion recorded for {recorder}! You earned ${amount}! Current balance: {check_balance(recorder)}."
+    return f"Task completion recorded for {recorder}! You earned ${amount} for {task}!"
 
 
 def complete_bounty(bounty: str, recorder: str, notes: str = ""):
@@ -188,7 +188,7 @@ def complete_bounty(bounty: str, recorder: str, notes: str = ""):
     date = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     bounties.append_table(values=[date, recorder, bounty, amount, notes], start='A:A', end='B:B')
     debug(f"reward={reward}\n recorder={recorder}\n amount={amount} \n notes={notes} \n date={date}")
-    return f"Bounty completion rewarded for {recorder}! You earned ${amount}! Current balance: {check_balance(recorder)}."
+    return f"Bounty completion rewarded for {recorder}! You earned ${amount} for {bounty}!"
 
 
 
