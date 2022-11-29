@@ -307,7 +307,7 @@ async def debug_switch(interaction: discord.Interaction):
 @client.tree.command()
 async def reset(interaction: discord.Interaction):
     reset_bot()
-    await interaction.response.send("Bot reset.")
+    await interaction.response.send_message("Bot reset.")
 
 
 @client.tree.command()
