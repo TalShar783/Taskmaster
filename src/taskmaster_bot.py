@@ -326,6 +326,10 @@ async def record(interaction: discord.Interaction,
     await send_slow_message(interaction=interaction, message=reply)
 
 
+@client.tree.command()
+@app_commands.describe(name="The name of the person completing the bounty.",
+                       bounty= "The name of the bounty being completed.",
+                       notes= "Any additional notes you have.")
 async def bounty(interaction: discord.Interaction,
                  name: UserEnum,
                  bounty: BountyEnum,
