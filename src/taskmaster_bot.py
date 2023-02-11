@@ -87,8 +87,8 @@ def register_users():
 def register_bounties():
     global bounty_list
     try:
-        bounty_list = bounties.get_values(include_tailing_empty=False, include_tailing_empty_rows=False, start="1:1",
-                                          end="1:1")[0]
+        bounty_list = bounties.get_values(include_tailing_empty=False, include_tailing_empty_rows=False, start="A:A",
+                                          end="C:C")[0]
         for bounty in bounty_list:
             try:
                 extend_enum(BountyEnum, bounty, bounty)
