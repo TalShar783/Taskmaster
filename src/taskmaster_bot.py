@@ -84,22 +84,6 @@ def register_users():
         debug(f"Got exception in registering users: {e}")
 
 
-# def register_bounties():
-#     global bounty_list
-#     try:
-#         bounty_list = bounties.get_values(include_tailing_empty=False, include_tailing_empty_rows=False, start="A:A",
-#                                           end="C:C")[0]
-#         for bounty in bounty_list:
-#             try:
-#                 extend_enum(BountyEnum, bounty, bounty)
-#             except Exception as e:
-#                 debug(f"Got exception when adding bounty to BountyEnum: {e}")
-#         return bounty_list
-#     except Exception as e:
-#         debug(f"Got exception in registering bounties: {e}")
-
-
-
 def register_bounties():
     global bounty_list
     bounty_list = {}
@@ -109,13 +93,14 @@ def register_bounties():
         bounty_name = this_bounty[0] if this_bounty[0:] else "ERROR"
         bounty_reward = this_bounty[1] if this_bounty[1:] else "2d8"
         bounty_list[this_bounty[0]] = {
-            "Task": bounty_name,
+            "Bounty": bounty_name,
             "Reward": bounty_reward
         }
+    debug(f"Bounty list is: {bounty_list}")
     del bounty_list["Bounty"]
-    for bounty in bounty_list:
+    for each_bounty in bounty_list:
         try:
-            extend_enum(TaskEnum, bounty, bounty)
+            extend_enum(BountyEnum, each_bounty, each_bounty)
         except Exception as e:
             debug(f"Got exception when assigning bounty to BountyEnum: {e}")
 
@@ -207,10 +192,12 @@ def complete_bounty(bounty: str, recorder: str, notes: str = ""):
     amount = calculate_reward(reward)
     notes = f"{notes} - Added by Bot"
     date = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-    bounties.append_table(values=[date, recorder, bounty, amount, notes], start='A:A', end='B:B')
+    transactions.append_table(values=[date, recorder, bounty, amount, notes], start='A:A', end='B:B')
+    del bounty_list[bounty]
+    bounty_row = bounties.find(forceFetch=True, matchEntireCell=True, pattern=bounty)[0].row
+    bounties.delete_rows(index=bounty_row)
     debug(f"reward={reward}\n recorder={recorder}\n amount={amount} \n notes={notes} \n date={date}")
     return f"Bounty completion rewarded for {recorder}! You earned ${amount} for {bounty}!"
-
 
 
 def spend(amount: float = 0.0, reason: str = "", spender: str = "", notes: str = ""):
@@ -357,9 +344,9 @@ async def bounty(interaction: discord.Interaction,
                  name: UserEnum,
                  bounty: BountyEnum,
                  notes: str = ""):
-    reply = record_task(
+    reply = complete_bounty(
         recorder=name.value,
-        task=bounty.value,
+        bounty=bounty.value,
         notes=notes)
     await send_slow_message(interaction=interaction, message=reply)
 
