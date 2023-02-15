@@ -84,19 +84,40 @@ def register_users():
         debug(f"Got exception in registering users: {e}")
 
 
+# def register_bounties():
+#     global bounty_list
+#     try:
+#         bounty_list = bounties.get_values(include_tailing_empty=False, include_tailing_empty_rows=False, start="A:A",
+#                                           end="C:C")[0]
+#         for bounty in bounty_list:
+#             try:
+#                 extend_enum(BountyEnum, bounty, bounty)
+#             except Exception as e:
+#                 debug(f"Got exception when adding bounty to BountyEnum: {e}")
+#         return bounty_list
+#     except Exception as e:
+#         debug(f"Got exception in registering bounties: {e}")
+
+
+
 def register_bounties():
     global bounty_list
-    try:
-        bounty_list = bounties.get_values(include_tailing_empty=False, include_tailing_empty_rows=False, start="A:A",
-                                          end="C:C")[0]
-        for bounty in bounty_list:
-            try:
-                extend_enum(BountyEnum, bounty, bounty)
-            except Exception as e:
-                debug(f"Got exception when adding bounty to BountyEnum: {e}")
-        return bounty_list
-    except Exception as e:
-        debug(f"Got exception in registering bounties: {e}")
+    bounty_list = {}
+    all_bounties = bounties.get_values(include_tailing_empty=False, include_tailing_empty_rows=False, start="A:A",
+                                       end="C:C")
+    for this_bounty in all_bounties:
+        bounty_name = this_bounty[0] if this_bounty[0:] else "ERROR"
+        bounty_reward = this_bounty[1] if this_bounty[1:] else "2d8"
+        bounty_list[this_bounty[0]] = {
+            "Task": bounty_name,
+            "Reward": bounty_reward
+        }
+    del bounty_list["Bounty"]
+    for bounty in bounty_list:
+        try:
+            extend_enum(TaskEnum, bounty, bounty)
+        except Exception as e:
+            debug(f"Got exception when assigning bounty to BountyEnum: {e}")
 
 
 def get_task(task: str):
@@ -231,8 +252,10 @@ def check_balance(name: str = ""):
 def reset_bot():
     global task_list
     global user_list
+    global bounty_list
     task_list = {}
     user_list = []
+    bounty_list = {}
     register_tasks()
     register_users()
     register_bounties()
