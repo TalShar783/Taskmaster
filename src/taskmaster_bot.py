@@ -31,7 +31,7 @@ bounties = sh.worksheet_by_title('Bounty Board')
 task_list: dict = {}
 user_list: list = []
 bounty_list: dict = {}
-debug_enabled = False
+debug_enabled = True
 
 
 def debug(message: str):
@@ -158,11 +158,16 @@ def calculate_reward(amount: str):
     Can take static values ("20").
     Uses github.com/borntyping/python-dice
     """
-
-    try:
-        return dice.roll(f"{amount}t")
-    except Exception as e:
-        debug(f"Got exception when attempting to calculate reward: {e}")
+    if amount.count("d") > 0:
+        try:
+            return dice.roll(f"{amount}t")
+        except Exception as e:
+            debug(f"Got exception when attempting to calculate reward by rolling dice: {e}")
+    else:
+        try:
+            return amount
+        except Exception as e:
+            debug(f"Got exception when attempting to return reward without rolling dice: {e}")
 
 
 def record_task(task: str, recorder: str, notes: str = ""):
@@ -212,7 +217,7 @@ def spend(amount: float = 0.0, reason: str = "", spender: str = "", notes: str =
 
 def earn(amount: str = "", reason: str = "", earner: str = "", notes: str = ""):
     try:
-        amount = calculate_reward(amount)
+        amount = float(calculate_reward(amount))
         notes = f"{notes} - Added by Bot"
         date = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         transactions.append_table(values=[date, earner, reason, abs(amount), notes], start="A:A", end="E:E")
@@ -311,7 +316,7 @@ async def debug_switch(interaction: discord.Interaction):
     else:
         debug_enabled = True
         print("Debug enabled.")
-        await interaction.response.send_message("Debug disabled.")
+        await interaction.response.send_message("Debug enabled.")
 
 
 @client.tree.command()
