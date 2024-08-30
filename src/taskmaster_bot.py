@@ -32,8 +32,9 @@ totals = sh.worksheet_by_title('Totals')
 bounties = sh.worksheet_by_title('Bounty Board')
 
 task_list: dict = {}
-user_list: list = []
-bounty_list: dict = {}
+user_list: list = ["Everyone"]
+bounty_dict: dict = {}
+bounty_list: list = []
 debug_enabled = True
 
 
@@ -42,9 +43,9 @@ def debug(message: str):
         print(message)
 
 
-UserEnum = enum.Enum('UserEnum', {'Everyone': 'Everyone'})
-TaskEnum = enum.Enum('TaskEnum', {})
-BountyEnum = enum.Enum('BountyEnum', {})
+# UserEnum = enum.Enum('UserEnum', {'Everyone': 'Everyone'})
+# TaskEnum = enum.Enum('TaskEnum', {})
+# BountyEnum = enum.Enum('BountyEnum', {})
 
 
 def register_tasks():
@@ -63,11 +64,11 @@ def register_tasks():
             "Notes": task_notes
         }
     del task_list["Task"]
-    for task in task_list:
-        try:
-            extend_enum(TaskEnum, task, task)
-        except Exception as e:
-            debug(f"Got exception when assigning task to TaskEnum: {e}")
+    # for task in task_list:
+    #     try:
+    #         extend_enum(TaskEnum, task, task)
+    #     except Exception as e:
+    #         debug(f"Got exception when assigning task to TaskEnum: {e}")
 
 
 def register_users():
@@ -75,37 +76,33 @@ def register_users():
     try:
         user_list = totals.get_values(include_tailing_empty=False, include_tailing_empty_rows=False, start="1:1",
                                       end="1:1")[0]
-        for user in user_list:
-            try:
-                extend_enum(UserEnum, user, user)
-            except Exception as e:
-                debug(f"Got exception when adding user to UserEnum: {e}")
-
+        # Remove blank and "Total" from user list, and add Everyone
+        user_list = list(filter(None, user_list))
+        user_list = list(filter(lambda x: x != "Total", user_list))
         user_list.append("Everyone")
+        print(user_list)
         return user_list
     except Exception as e:
         debug(f"Got exception in registering users: {e}")
 
 
 def register_bounties():
+    global bounty_dict
     global bounty_list
-    bounty_list = {}
+    bounty_dict = {}
+    bounty_list = []
     all_bounties = bounties.get_values(include_tailing_empty=False, include_tailing_empty_rows=False, start="A:A",
                                        end="C:C")
     for this_bounty in all_bounties:
         bounty_name = this_bounty[0] if this_bounty[0:] else "ERROR"
         bounty_reward = this_bounty[1] if this_bounty[1:] else "2d8"
-        bounty_list[this_bounty[0]] = {
+        bounty_dict[this_bounty[0]] = {
             "Bounty": bounty_name,
             "Reward": bounty_reward
         }
-    debug(f"Bounty list is: {bounty_list}")
-    del bounty_list["Bounty"]
-    for each_bounty in bounty_list:
-        try:
-            extend_enum(BountyEnum, each_bounty, each_bounty)
-        except Exception as e:
-            debug(f"Got exception when assigning bounty to BountyEnum: {e}")
+        bounty_list.append(bounty_name)
+    debug(f"Bounty dict is: {bounty_dict}")
+    del bounty_dict["Bounty"]
 
 
 def get_task(task: str):
@@ -124,7 +121,7 @@ def get_task(task: str):
 def get_bounty(bounty: str):
     try:
         debug(f"bounty is: {bounty}")
-        return bounty_list[bounty]
+        return bounty_dict[bounty]
     except Exception as e:
         debug(f"Got exception in gettinb bounty: {e}")
 
@@ -201,7 +198,7 @@ def complete_bounty(bounty: str, recorder: str, notes: str = ""):
     notes = f"{notes} - Added by Bot"
     date = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     transactions.append_table(values=[date, recorder, bounty, amount, notes], start='A:A', end='B:B')
-    del bounty_list[bounty]
+    del bounty_dict[bounty]
     bounty_row = bounties.find(forceFetch=True, matchEntireCell=True, pattern=bounty)[0].row
     bounties.delete_rows(index=bounty_row)
     debug(f"reward={reward}\n recorder={recorder}\n amount={amount} \n notes={notes} \n date={date}")
@@ -247,17 +244,17 @@ def check_balance(name: str = ""):
 def reset_bot():
     global task_list
     global user_list
-    global bounty_list
+    global bounty_dict
     task_list = {}
     user_list = []
-    bounty_list = {}
+    bounty_dict = {}
     register_tasks()
     register_users()
     register_bounties()
 
 
 # Tasks and Users must be registered now, otherwise when the bot tries to register its commands, it will fail
-# because it won't have the proper values for its Enums.
+# because it won't have the proper values for its lists.
 register_tasks()
 register_users()
 register_bounties()
@@ -328,35 +325,67 @@ async def reset(interaction: discord.Interaction):
     await interaction.response.send_message("Bot reset.")
 
 
-@app_commands.command()
+@client.tree.command()
+
 @app_commands.describe(name="The name of the person who did the task.",
                        task="The name of the task.",
                        notes="Any notes you might want to add."
                        )
 async def record(interaction: discord.Interaction,
-                 name: UserEnum,
-                 task: TaskEnum,
+                 name: str = "",
+                 task: str = "",
                  notes: str = ""):
     reply = record_task(
-        recorder=name.value,
-        task=task.value,
+        recorder=name,
+        task=task,
         notes=notes)
     await send_slow_message(interaction=interaction, message=reply)
+@record.autocomplete('name')
+async def record_autocomplete(
+        interaction: discord.Interaction,
+        current: str,
+) -> list[app_commands.Choice[str]]:
+    names = user_list
+    return [
+        app_commands.Choice(name=name, value=name)
+        for name in names if current.lower() in name.lower()
+    ]
+@record.autocomplete('task')
+async def record_autocomplete(
+        interaction: discord.Interaction,
+        current: str,
+) -> list[app_commands.Choice[str]]:
+    tasks = task_list
+    return [
+        app_commands.Choice(name=task, value=task)
+        for task in tasks if current.lower() in task.lower()
+    ]
+
 
 
 @app_commands.command()
 @app_commands.describe(name="The name of the person completing the bounty.",
-                       bounty= "The name of the bounty being completed.",
-                       notes= "Any additional notes you have.")
+                       bounty="The name of the bounty being completed.",
+                       notes="Any additional notes you have.")
 async def bounty(interaction: discord.Interaction,
-                 name: UserEnum,
-                 bounty: BountyEnum,
+                 name: str = "",
+                 bounty: str = "",
                  notes: str = ""):
     reply = complete_bounty(
-        recorder=name.value,
-        bounty=bounty.value,
+        recorder=name,
+        bounty=bounty,
         notes=notes)
     await send_slow_message(interaction=interaction, message=reply)
+@bounty.autocomplete('bounty')
+async def record_autocomplete(
+        interaction: discord.Interaction,
+        current: str,
+) -> list[app_commands.Choice[str]]:
+    bounties = bounty_dict
+    return [
+        app_commands.Choice(name=bounty, value=bounty)
+        for bounty in bounties if current.lower() in bounty.lower()
+    ]
 
 
 @app_commands.command(name="earn")
@@ -364,43 +393,72 @@ async def bounty(interaction: discord.Interaction,
                        reason="What you did to earn the money.",
                        amount="The amount of money earned  (enter a decimal with no $, eg. '4.20')")
 async def earn_money(interaction: discord.Interaction,
-                     name: UserEnum,
+                     name: str = "",
                      reason: str = "",
                      amount: str = "",
                      notes: str = ""):
     await send_slow_message(interaction=interaction, message=earn(
-        earner=name.value,
+        earner=name,
         reason=reason,
         amount=amount,
         notes=notes))
-
+@earn_money.autocomplete('name')
+async def record_autocomplete(
+        interaction: discord.Interaction,
+        current: str,
+) -> list[app_commands.Choice[str]]:
+    names = user_list
+    return [
+        app_commands.Choice(name=name, value=name)
+        for name in names if current.lower() in name.lower()
+    ]
 
 @app_commands.command(name="spend")
 @app_commands.describe(name="The name of the person who spent the money.",
                        reason="What did you spend the money on?",
                        amount="The amount of money spent (enter a decimal with no $, eg. '4.20').")
 async def spend_money(interaction: discord.Interaction,
-                      name: UserEnum,
+                      name: str = "",
                       reason: str = "",
                       amount: float = 0.0,
                       notes: str = ""):
     await send_slow_message(interaction=interaction, message=spend(
-        spender=name.value,
+        spender=name,
         reason=reason,
         amount=amount,
         notes=notes))
+@spend_money.autocomplete('name')
+async def record_autocomplete(
+        interaction: discord.Interaction,
+        current: str,
+) -> list[app_commands.Choice[str]]:
+    names = user_list
+    return [
+        app_commands.Choice(name=name, value=name)
+        for name in names if current.lower() in name.lower()
+    ]
 
 
 @app_commands.command(name="check_balance")
 @app_commands.describe(name="The name of the person whose balance you want to check.")
 async def d_check_balance(interaction: discord.Interaction,
-                          name: UserEnum):
+                          name: str = ""):
     try:
-        balance = f"Balance for {name.value}: {check_balance(name.value)}."
+        balance = f"Balance for {name}: {check_balance(name)}."
     except Exception as e:
         debug(f"Error in accessing sheet to get balance: {e}")
         balance = "Error"
     await send_slow_message(interaction=interaction, message=balance)
+@d_check_balance.autocomplete('name')
+async def record_autocomplete(
+        interaction: discord.Interaction,
+        current: str,
+) -> list[app_commands.Choice[str]]:
+    names = user_list
+    return [
+        app_commands.Choice(name=name, value=name)
+        for name in names if current.lower() in name.lower()
+    ]
 
 
 """
