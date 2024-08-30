@@ -3,9 +3,6 @@ import os
 import pygsheets
 import dice
 from datetime import datetime
-
-from discord.ext.commands import bot
-
 import discord_token
 import discord
 from discord import app_commands
@@ -304,7 +301,7 @@ async def on_ready():
     print('------')
 
 
-@app_commands.command()
+@client.tree.command()
 async def debug_switch(interaction: discord.Interaction):
     global debug_enabled
     if debug_enabled:
@@ -317,7 +314,7 @@ async def debug_switch(interaction: discord.Interaction):
         await interaction.response.send_message("Debug enabled.")
 
 
-@app_commands.command()
+@client.tree.command()
 async def reset(interaction: discord.Interaction):
     reset_bot()
     await interaction.response.send_message("Bot reset.")
@@ -361,7 +358,7 @@ async def record_autocomplete(
 
 
 
-@app_commands.command()
+@client.tree.command()
 @app_commands.describe(name="The name of the person completing the bounty.",
                        bounty="The name of the bounty being completed.",
                        notes="Any additional notes you have.")
@@ -386,7 +383,7 @@ async def record_autocomplete(
     ]
 
 
-@app_commands.command(name="earn")
+@client.tree.command(name="earn")
 @app_commands.describe(name="The name of the person who earned the money.",
                        reason="What you did to earn the money.",
                        amount="The amount of money earned  (enter a decimal with no $, eg. '4.20')")
@@ -411,7 +408,7 @@ async def record_autocomplete(
         for name in names if current.lower() in name.lower()
     ]
 
-@app_commands.command(name="spend")
+@client.tree.command(name="spend")
 @app_commands.describe(name="The name of the person who spent the money.",
                        reason="What did you spend the money on?",
                        amount="The amount of money spent (enter a decimal with no $, eg. '4.20').")
@@ -437,7 +434,7 @@ async def record_autocomplete(
     ]
 
 
-@app_commands.command(name="check_balance")
+@client.tree.command(name="check_balance")
 @app_commands.describe(name="The name of the person whose balance you want to check.")
 async def d_check_balance(interaction: discord.Interaction,
                           name: str = ""):
