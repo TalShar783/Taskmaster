@@ -1,5 +1,4 @@
 import asyncio
-import enum
 import os
 import pygsheets
 import dice
@@ -7,7 +6,6 @@ from datetime import datetime
 import discord_token
 import discord
 from discord import app_commands
-from aenum import extend_enum
 
 """
 ########################################################################################################################
